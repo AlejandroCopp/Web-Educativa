@@ -42,22 +42,21 @@ const LEVEL_ICONS = {
 
 // --- LISTA BLANCA DE ALUMNOS (CONTROL DE ACCESO, NIVELES Y NOMBRES) ---
 const AUTHORIZED_STUDENTS = {
-  "2": {
-    name: "esta es la primer clase lvl 2 gratis",
+  "1": {
+    name: "Juan Pérez",
     access: {
-       
+      "Nivel 1": "2023-01-01", 
       "Nivel 2": new Date().toISOString().split('T')[0] 
     }
   },
-  "1": {
-    name: ", esta es la primer clase lvl 1 gratis",
+  "2": {
+    name: ". ",
     access: {
-      "Nivel 3": "2023-01-01",
-      "Nivel 1": new Date().toISOString().split('T')[0] 
+      "Nivel 2": new Date().toISOString().split('T')[0] 
     }
   },
   "3": {
-    name: "esta es la primer clase lvl 3 gratis",
+    name: ".  ",
     access: {
       "Nivel 3": new Date().toISOString().split('T')[0]
     }
@@ -89,6 +88,22 @@ const INITIAL_COURSE_DATA = {
   "Nivel 3": {
     "Clase 1": EMPTY_CLASS_TEMPLATE, "Clase 2": EMPTY_CLASS_TEMPLATE, "Clase 3": EMPTY_CLASS_TEMPLATE, "Clase 4": EMPTY_CLASS_TEMPLATE, "Clase 5": EMPTY_CLASS_TEMPLATE, "Clase 6": EMPTY_CLASS_TEMPLATE
   }
+};
+
+// --- HELPERS PARA URLS ---
+const getYouTubeId = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+const getGoogleDriveId = (url) => {
+  if (!url) return null;
+  // Patrón para capturar el ID entre /file/d/ y /view o /preview
+  const regExp = /\/file\/d\/([a-zA-Z0-9_-]+)/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
 };
 
 // --- COMPONENTES VISUALES (UI) ---
@@ -148,7 +163,7 @@ const VideoDisplay = ({ section, userMode }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 }); 
   const containerRef = useRef(null);
-  const videoRef = useRef(null); // Referencia directa al elemento de video
+  const videoRef = useRef(null); 
   const [trail, setTrail] = useState([]);
 
   useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); setTrail([]); }, [section.content]);
@@ -156,32 +171,20 @@ const VideoDisplay = ({ section, userMode }) => {
   // Manejador de Barra Espaciadora para Play/Pause
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Solo actuar si es la barra espaciadora
       if (e.code === 'Space') {
-        e.preventDefault(); // Evitar scroll de la página
+        e.preventDefault(); 
         if (videoRef.current) {
-          if (videoRef.current.paused) {
-            videoRef.current.play();
-          } else {
-            videoRef.current.pause();
-          }
+          if (videoRef.current.paused) videoRef.current.play();
+          else videoRef.current.pause();
         }
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Helper para detectar ID de YouTube
-  const getYouTubeId = (url) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
-
   const youtubeId = getYouTubeId(section.content);
+  const googleDriveId = getGoogleDriveId(section.content);
 
   const handleZoom = (direction) => {
     setZoom(prev => {
@@ -201,6 +204,7 @@ const VideoDisplay = ({ section, userMode }) => {
     if (zoom > 1) { setIsDragging(true); setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y }); }
   };
   const handleMouseMove = (e) => {
+    // Solo generar rastro si es PROFESOR
     if (userMode === 'teacher') {
       setTrail((prev) => {
         const newPoint = { x: e.clientX, y: e.clientY, id: Math.random() };
@@ -246,9 +250,24 @@ const VideoDisplay = ({ section, userMode }) => {
               className="w-full h-full"
             ></iframe>
           </div>
+        ) : googleDriveId ? (
+            <div className="w-full h-full relative" 
+                 style={{ 
+                   transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, 
+                   transformOrigin: 'center', 
+                   transition: isDragging ? 'none' : 'transform 0.2s ease-out' 
+                 }}>
+              {zoom > 1 && <div className="absolute inset-0 z-50 bg-transparent"></div>}
+              <iframe 
+                src={`https://drive.google.com/file/d/${googleDriveId}/preview`}
+                className="w-full h-full"
+                allow="autoplay"
+                title="Google Drive Video"
+              ></iframe>
+            </div>
         ) : (
           <video 
-            ref={videoRef} // Agregada la referencia para control
+            ref={videoRef} 
             key={section.content} 
             src={section.content} 
             controls={!isDragging} 
@@ -282,7 +301,24 @@ const ContentDisplay = ({ section, userMode }) => {
       </div>
     );
   }
-  if (section.type === 'image') return <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-xl overflow-hidden shadow-lg p-4"><img src={section.content} alt="Material" className="max-h-full max-w-full object-contain rounded-lg" /></div>;
+  if (section.type === 'image') {
+    // Detectamos si es una imagen de Google Drive para usar iframe
+    const googleDriveId = getGoogleDriveId(section.content);
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded-xl overflow-hidden shadow-lg p-4">
+        {googleDriveId ? (
+          <iframe 
+            src={`https://drive.google.com/file/d/${googleDriveId}/preview`}
+            className="w-full h-full rounded-lg"
+            title="Material de clase"
+            allow="autoplay"
+          ></iframe>
+        ) : (
+          <img src={section.content} alt="Material" className="max-h-full max-w-full object-contain rounded-lg" />
+        )}
+      </div>
+    );
+  }
   if (section.type === 'quiz') return <QuizComponent data={section} />;
   return <div>Contenido desconocido</div>;
 };
@@ -320,6 +356,12 @@ const ClassSession = ({ classData, levelTitle, classTitle, onBack, onUpdateClass
     } catch (e) { alert("Error en el formato JSON. Revisa las comas."); }
   };
 
+  // Determinar si mostrar el contador. Se OCULTA para:
+  // - Videos (video, video_practice)
+  // - Actividades de alumnos (timer)
+  // - Quizzes (ya tienen su propio timer)
+  const showTimer = !['video', 'video_practice', 'timer', 'quiz'].includes(currentSection.type);
+
   return (
     <div className="flex flex-col h-screen bg-slate-100">
       <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shadow-sm z-10">
@@ -352,17 +394,22 @@ const ClassSession = ({ classData, levelTitle, classTitle, onBack, onUpdateClass
             <div className="w-full h-full max-w-6xl max-h-[80vh] flex flex-col">
               <div className="flex-1 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mb-4 relative">
                 <ContentDisplay section={currentSection} userMode={userMode} /> {/* Pasa userMode */}
-                {/* NOTAS DEL PROFESOR ELIMINADAS AQUÍ - Antes había un div con "Tip Profe" */}
+                {/* Notas del profesor eliminadas */}
               </div>
             </div>
           </div>
           <div className="h-24 bg-white border-t border-slate-200 flex items-center justify-between px-8">
             <div className="flex items-center gap-6">
-              <div className="text-right"><div className={`text-3xl font-mono font-bold ${timeLeft < 60 ? 'text-red-500' : 'text-slate-700'}`}>{Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}</div></div>
-              <div className="flex gap-2">
-                <button onClick={() => setIsRunning(!isRunning)} className={`p-4 rounded-full shadow-lg transform active:scale-95 ${isRunning ? 'bg-yellow-100 text-yellow-600' : 'bg-indigo-600 text-white'}`}>{isRunning ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}</button>
-                <button onClick={() => { setIsRunning(false); setTimeLeft(currentSection.duration); }} className="p-4 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><RotateCcw size={24} /></button>
-              </div>
+              {/* RENDERIZADO CONDICIONAL DEL TIMER */}
+              {showTimer && (
+                <>
+                  <div className="text-right"><div className={`text-3xl font-mono font-bold ${timeLeft < 60 ? 'text-red-500' : 'text-slate-700'}`}>{Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}</div></div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setIsRunning(!isRunning)} className={`p-4 rounded-full shadow-lg transform active:scale-95 ${isRunning ? 'bg-yellow-100 text-yellow-600' : 'bg-indigo-600 text-white'}`}>{isRunning ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}</button>
+                    <button onClick={() => { setIsRunning(false); setTimeLeft(currentSection.duration); }} className="p-4 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><RotateCcw size={24} /></button>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-4">
                <button onClick={() => changeSection(currentIndex - 1)} disabled={currentIndex === 0} className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50"><SkipBack size={20} /> Anterior</button>
@@ -403,8 +450,6 @@ export default function ClassManager() {
   const [teacherPasswordInput, setTeacherPasswordInput] = useState("");
 
   // 1. AUTENTICACIÓN Y GESTIÓN DE SESIÓN
-  // Este efecto es clave: Si el usuario se desconecta (por ejemplo, el profesor sale),
-  // automáticamente iniciamos una sesión anónima para que la app no se rompa y muestre el login de alumnos.
   useEffect(() => {
     const initAuth = async () => {
       // Intentamos recuperar una sesión previa o iniciamos una anónima
