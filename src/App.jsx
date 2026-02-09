@@ -42,21 +42,22 @@ const LEVEL_ICONS = {
 
 // --- LISTA BLANCA DE ALUMNOS (CONTROL DE ACCESO, NIVELES Y NOMBRES) ---
 const AUTHORIZED_STUDENTS = {
-  "12": {
-    name: "Juan Pérez",
+  "2": {
+    name: "esta es la primer clase lvl 2 gratis",
     access: {
-      "Nivel 1": "2023-01-01", 
+       
       "Nivel 2": new Date().toISOString().split('T')[0] 
     }
   },
-  "111": {
-    name: "María García",
+  "1": {
+    name: ", esta es la primer clase lvl 1 gratis",
     access: {
+      "Nivel 3": "2023-01-01",
       "Nivel 1": new Date().toISOString().split('T')[0] 
     }
   },
   "3": {
-    name: "Carlos López",
+    name: "esta es la primer clase lvl 3 gratis",
     access: {
       "Nivel 3": new Date().toISOString().split('T')[0]
     }
