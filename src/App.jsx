@@ -6,7 +6,7 @@ import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, serverTimest
 
 
 
-// --- CONFIGURACIÓN DE FIREBASE ---
+// --- CONFIGURACIÓN DE FIREBASE ok---
 const firebaseConfig = {
   apiKey: "AIzaSyCowSK9zPnRkjqGzJNGcXvv3fI7oXxW1OY",
   authDomain: "plataforma-web-educativa-51304.firebaseapp.com",
