@@ -2,15 +2,15 @@
   "name": "mis-clases",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://github.com/AlejandroCopp/Web-Educativa", 
+  "homepage": "https://github.com/AlejandroCopp/Web-Educativa",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-     "predeploy": "npm run build",
-   "deploy": "gh-pages -d dist"
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "firebase": "^12.8.0",
